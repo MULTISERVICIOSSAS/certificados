@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MULTISERVICIOS - Generador de Certificados de Manipulación de Alimentos</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Montserrat:wght@300;400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet" />
+  <!-- html2canvas & jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+      overflow-x: hidden;
+    }
+    /* ===================== ANIMACIONES ===================== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes notifIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes notifOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-20px); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(59,130,246,0.3); }
+      50% { box-shadow: 0 0 40px rgba(59,130,246,0.6); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+    .animate-slide-in { animation: slideIn 0.5s ease-out forwards; }
+    .spinner { animation: spin 1s linear infinite; }
+    /* ===================== FONDOS DECORATIVOS ===================== */
+    .bg-blob {
+      position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0;
+    }
+    .blob1 { top: -100px; left: 20%; width: 400px; height: 400px; background: rgba(59,130,246,0.08); }
+    .blob2 { bottom: -100px; right: 20%; width: 400px; height: 400px; background: rgba(99,102,241,0.08); }
+    .blob3 { top: 40%; left: -50px; width: 280px; height: 280px; background: rgba(34,211,238,0.05); }
+    /* ===================== NOTIFICACIÓN ===================== */
+    .notification {
+      position: fixed; top: 24px; right: 24px; z-index: 9999;
+      background: #fff; padding: 16px 28px; border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25); border: 1px solid #e5e7eb;
+      font-weight: 600; color: #1f2937; font-size: 14px;
+      animation: notifIn 0.35s ease-out forwards;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .notification.hide { animation: notifOut 0.35s ease-out forwards; }
+    /* ===================== HEADER ===================== */
+    header {
+      position: relative; z-index: 10; padding: 36px 20px 20px; text-align: center;
+    }
+    .header-inner {
+      display: inline-flex; align-items: center; gap: 16px; margin-bottom: 8px;
+    }
+    .header-icon {
+      width: 58px; height: 58px; background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 18px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 30px rgba(59,130,246,0.35);
+    }
+    .header-icon svg { width: 32px; height: 32px; color: #fff; }
+    .header-title {
+      font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 900;
+      color: #fff; letter-spacing: 7px; text-transform: uppercase;
+    }
+    .header-sub {
+      color: #93c5fd; font-size: 12px; letter-spacing: 4px; text-transform: uppercase; margin-top: 3px;
+    }
+    .header-desc { color: rgba(147,197,253,0.5); font-size: 13px; margin-top: 10px; }
+    /* ===================== TARJETA FORMULARIO ===================== */
+    .form-card {
+      width: 100%; max-width: 500px; margin: 0 auto;
+      background: rgba(255,255,255,0.07); backdrop-filter: blur(20px);
+      border-radius: 24px; box-shadow: 0 25px 70px rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.12); overflow: hidden;
+    }
+    .form-header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 50%, #1e3a5f 100%);
+      padding: 36px 32px; text-align: center;
+    }
+    .form-header-row { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 12px; }
+    .form-header-icon {
+      width: 50px; height: 50px; background: rgba(255,255,255,0.15);
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    }
+    .form-header-icon svg { width: 30px; height: 30px; color: #fff; }
+    .form-header h2 {
+      font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700;
+      color: #fff; letter-spacing: 6px;
+    }
+    .form-header p { color: #bfdbfe; font-size: 13px; letter-spacing: 1.5px; }
+    .form-body { padding: 36px 32px; background: #fff; }
+    .form-group { margin-bottom: 26px; }
+    .form-group.g1 { animation: slideIn 0.5s ease-out forwards; }
+    .form-group.g2 { animation: slideIn 0.5s 0.1s ease-out forwards; opacity: 0; }
+    .form-label {
+      display: flex; align-items: center; gap: 8px; font-size: 13px;
+      font-weight: 700; color: #374151; margin-bottom: 10px; text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-label svg { width: 18px; height: 18px; color: #2563eb; }
+    .form-input {
+      width: 100%; padding: 15px 20px; border-radius: 14px; border: 2px solid #e5e7eb;
+      background: #f9fafb; font-size: 15px; color: #1f2937; outline: none;
+      transition: all 0.3s ease; font-family: 'Montserrat', sans-serif;
+    }
+    .form-input::placeholder { color: #9ca3af; font-weight: 400; }
+    .form-input:focus {
+      border-color: #3b82f6; background: #fff;
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.1), 0 8px 24px rgba(59,130,246,0.08);
+    }
+    .form-input.error { border-color: #f87171; background: #fef2f2; }
+    .form-input.error:focus { box-shadow: 0 0 0 4px rgba(248,113,113,0.1); }
+    .form-error {
+      display: none; align-items: center; gap: 6px; margin-top: 8px;
+      font-size: 13px; color: #ef4444; font-weight: 500;
+    }
+    .form-error.show { display: flex; }
+    .form-error svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .btn-generate {
+      width: 100%; padding: 17px; border: none; border-radius: 14px;
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #fff; font-size: 17px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(59,130,246,0.3);
+      font-family: 'Montserrat', sans-serif; letter-spacing: 0.5px;
+    }
+    .btn-generate:hover {
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      transform: translateY(-2px); box-shadow: 0 14px 40px rgba(59,130,246,0.4);
+    }
+    .btn-generate:active { transform: translateY(0) scale(0.98); }
+    .btn-generate svg { width: 24px; height: 24px; }
+    .form-info {
+      margin-top: 24px; padding: 16px 20px; background: #eff6ff;
+      border-radius: 14px; border: 1px solid #dbeafe;
+      text-align: center; font-size: 12px; color: #1d4ed8;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      line-height: 1.5;
+    }
+    .form-info svg { width: 18px; height: 18px; flex-shrink: 0; }
+    /* ===================== HISTORIAL ===================== */
+    .history-card {
+      width: 100%; max-width: 800px; margin: 36px auto 0;
+      background: #fff; border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.1); overflow: hidden;
+    }
+    .history-header {
+      background: linear-gradient(135deg, #1f2937, #374151);
+      padding: 18px 28px; display: flex; align-items: center; gap: 12px;
+    }
+    .history-header svg { width: 22px; height: 22px; color: #9ca3af; }
+    .history-header h3 { color: #fff; font-size: 16px; font-weight: 600; letter-spacing: 0.5px; }
+    .history-header span { background: #3b82f6; color: #fff; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .history-item {
+      padding: 18px 28px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #f3f4f6; transition: background 0.2s ease;
+    }
+    .history-item:hover { background: #f0f7ff; }
+    .history-item:last-child { border-bottom: none; }
+    .history-left { display: flex; align-items: center; gap: 16px; }
+    .history-avatar {
+      width: 44px; height: 44px; background: linear-gradient(135deg, #dbeafe, #bfdbfe); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; color: #1d4ed8; font-size: 16px;
+    }
+    .history-name { font-weight: 700; color: #1f2937; text-transform: capitalize; font-size: 14px; }
+    .history-meta { font-size: 12px; color: #6b7280; margin-top: 3px; }
+    .history-actions { display: flex; gap: 8px; }
+    .btn-view {
+      padding: 9px 18px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border: none;
+      border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .btn-view:hover { background: linear-gradient(135deg, #3b82f6, #2563eb); transform: translateY(-1px); }
+    .btn-view svg { width: 16px; height: 16px; }
+    .btn-delete {
+      padding: 9px 14px; background: #fee2e2; color: #dc2626; border: none;
+      border-radius: 10px; cursor: pointer; transition: all 0.2s ease;
+      display: flex; align-items: center;
+    }
+    .btn-delete:hover { background: #fecaca; transform: translateY(-1px); }
+    .btn-delete svg { width: 16px; height: 16px; }
+    /* ===================== BOTONES DE ACCIÓN ===================== */
+    .actions-bar {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+      gap: 12px; margin-bottom: 28px;
+    }
+    .btn-action {
+      padding: 13px 24px; border: none; border-radius: 14px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;
+      font-family: 'Montserrat', sans-serif; letter-spacing: 0.3px;
+    }
+    .btn-action svg { width: 20px; height: 20px; }
+    .btn-back {
+      background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+      color: #fff; border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+    .btn-pdf {
+      background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff;
+      box-shadow: 0 8px 24px rgba(220,38,38,0.3);
+    }
+    .btn-pdf:hover { box-shadow: 0 12px 30px rgba(220,38,38,0.4); transform: translateY(-2px); }
+    .btn-img {
+      background: linear-gradient(135deg, #16a34a, #15803d); color: #fff;
+      box-shadow: 0 8px 24px rgba(22,163,74,0.3);
+    }
+    .btn-img:hover { box-shadow: 0 12px 30px rgba(22,163,74,0.4); transform: translateY(-2px); }
+    .btn-print {
+      background: linear-gradient(135deg, #9333ea, #7e22ce); color: #fff;
+      box-shadow: 0 8px 24px rgba(147,51,234,0.3);
+    }
+    .btn-print:hover { box-shadow: 0 12px 30px rgba(147,51,234,0.4); transform: translateY(-2px); }
+    .btn-new {
+      background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;
+      box-shadow: 0 8px 24px rgba(245,158,11,0.3);
+    }
+    .btn-new:hover { box-shadow: 0 12px 30px rgba(245,158,11,0.4); transform: translateY(-2px); }
+    .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    /* ===================== CERTIFICADO WRAPPER ===================== */
+    .cert-wrapper {
+      display: flex; justify-content: center; overflow-x: auto; padding-bottom: 20px;
+    }
+    .cert-shadow {
+      box-shadow: 0 25px 70px rgba(0,0,0,0.45); border-radius: 8px; overflow: hidden;
+      min-width: 1000px;
+    }
+    /* ===================== CERTIFICADO ===================== */
+    .certificate {
+      width: 1000px; min-height: 700px; margin: 0 auto; background: #fff;
+      position: relative; font-family: 'Montserrat', sans-serif; overflow: hidden;
+    }
+    .cert-border-outer {
+      position: absolute; top: 8px; left: 8px; right: 8px; bottom: 8px;
+      border: 3px solid #1a5276; border-radius: 4px;
+    }
+    .cert-border-inner {
+      position: absolute; top: 14px; left: 14px; right: 14px; bottom: 14px;
+      border: 1px solid #2980b9; border-radius: 2px;
+    }
+    .cert-corner {
+      position: absolute; width: 60px; height: 60px;
+    }
+    .cert-corner.tl { top: 20px; left: 20px; border-top: 3px solid #c0392b; border-left: 3px solid #c0392b; }
+    .cert-corner.tr { top: 20px; right: 20px; border-top: 3px solid #c0392b; border-right: 3px solid #c0392b; }
+    .cert-corner.bl { bottom: 20px; left: 20px; border-bottom: 3px solid #c0392b; border-left: 3px solid #c0392b; }
+    .cert-corner.br { bottom: 20px; right: 20px; border-bottom: 3px solid #c0392b; border-right: 3px solid #c0392b; }
+    .cert-bar-top {
+      margin: 30px 30px 0 30px; height: 6px;
+      background: linear-gradient(90deg, #1a5276, #2980b9, #3498db, #2980b9, #1a5276);
+      border-radius: 3px;
+    }
+    .cert-bar-bottom {
+      position: absolute; bottom: 30px; left: 30px; right: 30px; height: 6px;
+      background: linear-gradient(90deg, #1a5276, #2980b9, #3498db, #2980b9, #1a5276);
+      border-radius: 3px;
+    }
+    .cert-content { padding: 20px 50px 30px 50px; text-align: center; }
+    .cert-logo-row {
+      display: inline-flex; align-items: center; justify-content: center; gap: 16px;
+      margin-bottom: 5px;
+    }
+    .cert-company {
+      font-size: 32px; font-weight: 900; color: #1a5276; letter-spacing: 8px;
+      font-family: 'Playfair Display', serif; text-transform: uppercase; margin: 0;
+    }
+    .cert-company-sub {
+      font-size: 10px; color: #7f8c8d; letter-spacing: 4px; margin: 2px 0 0 0;
+      text-transform: uppercase;
+    }
+    .cert-divider {
+      display: flex; align-items: center; justify-content: center; gap: 15px; margin: 12px 0;
+    }
+    .cert-divider-line { flex: 1; height: 1px; }
+    .cert-divider-line.left { background: linear-gradient(90deg, transparent, #bdc3c7); }
+    .cert-divider-line.right { background: linear-gradient(90deg, #bdc3c7, transparent); }
+    .cert-title {
+      font-size: 28px; font-weight: 700; color: #c0392b;
+      font-family: 'Playfair Display', serif; margin: 8px 0;
+      letter-spacing: 4px; text-transform: uppercase;
+    }
+    .cert-subtitle {
+      font-size: 16px; font-weight: 500; color: #2c3e50; margin: 0 0 8px 0;
+      letter-spacing: 2px; text-transform: uppercase;
+    }
+    .cert-preamble { font-size: 13px; color: #7f8c8d; margin: 0 0 20px 0; }
+    .cert-name {
+      font-size: 38px; font-family: 'Great Vibes', cursive; color: #1a5276;
+      margin: 0; text-transform: capitalize;
+    }
+    .cert-name-line {
+      width: 420px; height: 2px;
+      background: linear-gradient(90deg, transparent, #1a5276, transparent);
+      margin: 6px auto;
+    }
+    .cert-cedula {
+      font-size: 15px; color: #2c3e50; margin: 6px 0 16px 0; font-weight: 500;
+    }
+    .cert-cedula span { font-weight: 700; color: #1a5276; letter-spacing: 1px; }
+    .cert-desc-box {
+      max-width: 720px; margin: 0 auto 16px auto; padding: 16px 28px;
+      background: #f8f9fa; border-radius: 10px; border: 1px solid #e9ecef;
+    }
+    .cert-desc {
+      font-size: 12px; color: #495057; line-height: 1.9; margin: 0; text-align: justify;
+    }
+    .cert-dates {
+      display: flex; justify-content: center; gap: 60px; margin: 16px 0;
+    }
+    .cert-date-label {
+      font-size: 10px; color: #95a5a6; margin: 0 0 4px 0;
+      text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;
+    }
+    .cert-date-value { font-size: 14px; color: #2c3e50; font-weight: 700; margin: 0; }
+    .cert-signatures {
+      display: flex; justify-content: space-around; margin-top: 30px; padding: 0 40px;
+    }
+    .cert-sig { text-align: center; }
+    .cert-sig-name {
+      font-family: 'Great Vibes', cursive; font-size: 26px; color: #1a5276; margin-bottom: 0;
+    }
+    .cert-sig-line {
+      width: 220px; height: 1px; background: #2c3e50; margin: 3px auto 6px auto;
+    }
+    .cert-sig-full { font-size: 11px; font-weight: 700; color: #2c3e50; margin: 0; letter-spacing: 0.5px; }
+    .cert-sig-role { font-size: 9px; color: #7f8c8d; margin: 3px 0 0 0; font-weight: 500; }
+    .cert-seal {
+      position: absolute; bottom: 55px; right: 65px;
+      width: 92px; height: 92px; border-radius: 50%;
+      border: 3px double #c0392b;
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+      opacity: 0.7; transform: rotate(-15deg);
+    }
+    .cert-seal-top { font-size: 7px; color: #c0392b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .cert-seal-check { font-size: 18px; color: #c0392b; font-weight: 900; }
+    .cert-seal-bottom { font-size: 6px; color: #c0392b; font-weight: 600; text-transform: uppercase; }
+    /* ===================== FOOTER ===================== */
+    footer {
+      position: relative; z-index: 10; text-align: center; padding: 28px 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    footer p { color: rgba(147,197,253,0.35); font-size: 13px; }
+    /* ===================== MAIN ===================== */
+    main { position: relative; z-index: 10; padding: 0 16px 64px 16px; }
+    /* ===================== PRINT ===================== */
+    @media print {
+      body * { visibility: hidden; }
+      #certificate-area, #certificate-area * { visibility: visible; }
+      #certificate-area {
+        position: absolute; left: 0; top: 0; width: 100%;
+        box-shadow: none !important;
+      }
+      .bg-blob, header, footer, .actions-bar, .cert-shadow { box-shadow: none !important; }
+    }
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 768px) {
+      .header-title { font-size: 24px; letter-spacing: 3px; }
+      .header-icon { width: 46px; height: 46px; }
+      .header-icon svg { width: 26px; height: 26px; }
+      .actions-bar { gap: 8px; }
+      .btn-action { padding: 10px 16px; font-size: 12px; }
+      .btn-action svg { width: 18px; height: 18px; }
+      .history-item { flex-direction: column; gap: 14px; align-items: flex-start; }
+      .history-actions { align-self: flex-end; }
+      .form-card { margin: 0 8px; }
+    }
+    /* Ocultar el root de React */
+    #root { display: none; }
+  </style>
+</head>
+<body>
+  <!-- Fondos decorativos -->
+  <div class="bg-blob blob1"></div>
+  <div class="bg-blob blob2"></div>
+  <div class="bg-blob blob3"></div>
+  <!-- Contenedor de notificaciones -->
+  <div id="notification-container"></div>
+  <!-- Header -->
+  <header>
+    <div class="header-inner">
+      <div class="header-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      </div>
+      <div style="text-align:left;">
+        <h1 class="header-title">MULTISERVICIOS</h1>
+        <p class="header-sub">Sistema de Certificación</p>
+      </div>
+    </div>
+    <p class="header-desc">Generador de Certificados de Manipulación Higiénica de Alimentos</p>
+  </header>
+  <!-- Contenido principal -->
+  <main id="main-content"></main>
+  <!-- Footer -->
+  <footer>
+    <p>&copy; <span id="footer-year"></span> MULTISERVICIOS - Sistema de Certificación de Manipulación de Alimentos</p>
+  </footer>
+  <!-- Root para React (oculto, necesario para el build) -->
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+  <script>
+    // ============================================================
+    //  ESTADO GLOBAL
+    // ============================================================
+    var appState = {
+      view: 'form',
+      currentCert: { nombre: '', cedula: '', fecha: '', fechaVencimiento: '', codigoCertificado: '' },
+      history: [],
+      isGenerating: false
+    };
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+    // ============================================================
+    //  HELPERS
+    // ============================================================
+    function formatDate(date) {
+      var months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      return date.getDate() + ' de ' + months[date.getMonth()] + ' de ' + date.getFullYear();
+    }
+    function generateCode() {
+      var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      var code = 'MS-';
+      for (var i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      return code;
+    }
+    function showNotification(msg) {
+      var container = document.getElementById('notification-container');
+      var el = document.createElement('div');
+      el.className = 'notification';
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(function() { el.classList.add('hide'); }, 2800);
+      setTimeout(function() { el.remove(); }, 3200);
+    }
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    // ============================================================
+    //  GENERAR CERTIFICADO
+    // ============================================================
+    function generateCertificate(nombre, cedula) {
+      var now = new Date();
+      var expiry = new Date(now);
+      expiry.setFullYear(expiry.getFullYear() + 1);
+      appState.currentCert = {
+        nombre: nombre,
+        cedula: cedula,
+        fecha: formatDate(now),
+        fechaVencimiento: formatDate(expiry),
+        codigoCertificado: generateCode()
+      };
+      appState.history.unshift({
+        nombre: nombre,
+        cedula: cedula,
+        fecha: appState.currentCert.fecha,
+        codigo: appState.currentCert.codigoCertificado
+      });
+      appState.view = 'certificate';
+      render();
+      showNotification('✅ Certificado generado exitosamente');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    // ============================================================
+    //  DESCARGAR PDF
+    // ============================================================
+    function downloadPDF() {
+      var el = document.getElementById('certificate-area');
+      if (!el || appState.isGenerating) return;
+      appState.isGenerating = true;
+      render();
+      html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false }).then(function(canvas) {
+        var imgData = canvas.toDataURL('image/png');
+        var jsPDF = window.jspdf.jsPDF;
+        var pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        var pw = pdf.internal.pageSize.getWidth();
+        var ph = pdf.internal.pageSize.getHeight();
+        var ir = canvas.width / canvas.height;
+        var pr = pw / ph;
+        var fw = pw, fh = ph;
+        if (ir > pr) { fh = pw / ir; } else { fw = ph * ir; }
+        var x = (pw - fw) / 2, y = (ph - fh) / 2;
+        pdf.addImage(imgData, 'PNG', x, y, fw, fh);
+        pdf.save('Certificado_' + appState.currentCert.nombre.replace(/\s+/g, '_') + '_' + appState.currentCert.codigoCertificado + '.pdf');
+        showNotification('📄 PDF descargado exitosamente');
+        appState.isGenerating = false;
+        render();
+      }).catch(function(e) {
+        console.error(e);
+        showNotification('❌ Error al generar el PDF');
+        appState.isGenerating = false;
+        render();
+      });
+    }
+    // ============================================================
+    //  DESCARGAR IMAGEN
+    // ============================================================
+    function downloadImage() {
+      var el = document.getElementById('certificate-area');
+      if (!el || appState.isGenerating) return;
+      appState.isGenerating = true;
+      render();
+      html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false }).then(function(canvas) {
+        var link = document.createElement('a');
+        link.download = 'Certificado_' + appState.currentCert.nombre.replace(/\s+/g, '_') + '_' + appState.currentCert.codigoCertificado + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showNotification('🖼️ Imagen descargada exitosamente');
+        appState.isGenerating = false;
+        render();
+      }).catch(function(e) {
+        console.error(e);
+        showNotification('❌ Error al generar la imagen');
+        appState.isGenerating = false;
+        render();
+      });
+    }
+    // ============================================================
+    //  HISTORIAL
+    // ============================================================
+    function viewFromHistory(index) {
+      var record = appState.history[index];
+      var now = new Date();
+      var expiry = new Date(now);
+      expiry.setFullYear(expiry.getFullYear() + 1);
+      appState.currentCert = {
+        nombre: record.nombre,
+        cedula: record.cedula,
+        fecha: record.fecha,
+        fechaVencimiento: formatDate(expiry),
+        codigoCertificado: record.codigo
+      };
+      appState.view = 'certificate';
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function deleteFromHistory(index) {
+      appState.history.splice(index, 1);
+      render();
+      showNotification('🗑️ Registro eliminado del historial');
+    }
+    function goBack() {
+      appState.view = 'form';
+      render();
+    }
+    function newCertificate() {
+      appState.view = 'form';
+      render();
+    }
+    // ============================================================
+    //  RENDER
+    // ============================================================
+    function render() {
+      var main = document.getElementById('main-content');
+      if (appState.view === 'form') {
+        main.innerHTML = renderFormView();
+        attachFormEvents();
+      } else {
+        main.innerHTML = renderCertificateView();
+      }
+    }
+    // ============================================================
+    //  VISTA FORMULARIO
+    // ============================================================
+    function renderFormView() {
+      var html = '<div class="animate-fade-in-up">';
+      // Tarjeta del formulario
+      html += '\
+        <div class="form-card">\
+          <div class="form-header">\
+            <div class="form-header-row">\
+              <div class="form-header-icon">\
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />\
+                </svg>\
+              </div>\
+              <div>\
+                <h2>MULTISERVICIOS</h2>\
+              </div>\
+            </div>\
+            <p>Generador de Certificados de Manipulación de Alimentos</p>\
+          </div>\
+          <div class="form-body">\
+            <form id="cert-form">\
+              <div class="form-group g1">\
+                <label class="form-label">\
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />\
+                  </svg>\
+                  Nombre Completo\
+                </label>\
+                <input type="text" id="input-nombre" class="form-input" placeholder="Ej: Juan Carlos Pérez González" autocomplete="off" />\
+                <div id="error-nombre" class="form-error">\
+                  <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>\
+                  <span></span>\
+                </div>\
+              </div>\
+              <div class="form-group g2">\
+                <label class="form-label">\
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />\
+                  </svg>\
+                  Número de Cédula\
+                </label>\
+                <input type="text" id="input-cedula" class="form-input" placeholder="Ej: 1234567890" autocomplete="off" />\
+                <div id="error-cedula" class="form-error">\
+                  <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>\
+                  <span></span>\
+                </div>\
+              </div>\
+              <button type="submit" class="btn-generate">\
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />\
+                </svg>\
+                Generar Certificado\
+              </button>\
+            </form>\
+            <div class="form-info">\
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />\
+              </svg>\
+              El certificado se genera con la fecha actual y tiene vigencia de un (1) año.\
+            </div>\
+          </div>\
+        </div>';
+      // Historial
+      if (appState.history.length > 0) {
+        html += '\
+          <div class="history-card">\
+            <div class="history-header">\
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />\
+              </svg>\
+              <h3>Historial de Certificados</h3>\
+              <span>' + appState.history.length + '</span>\
+            </div>';
+        for (var i = 0; i < appState.history.length; i++) {
+          var rec = appState.history[i];
+          html += '\
+            <div class="history-item">\
+              <div class="history-left">\
+                <div class="history-avatar">' + escapeHtml(rec.nombre.charAt(0).toUpperCase()) + '</div>\
+                <div>\
+                  <div class="history-name">' + escapeHtml(rec.nombre) + '</div>\
+                  <div class="history-meta">C.C. ' + escapeHtml(rec.cedula) + ' &bull; ' + escapeHtml(rec.fecha) + ' &bull; ' + escapeHtml(rec.codigo) + '</div>\
+                </div>\
+              </div>\
+              <div class="history-actions">\
+                <button class="btn-view" onclick="viewFromHistory(' + i + ')">\
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />\
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />\
+                  </svg>\
+                  Ver\
+                </button>\
+                <button class="btn-delete" onclick="deleteFromHistory(' + i + ')">\
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />\
+                  </svg>\
+                </button>\
+              </div>\
+            </div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+    // ============================================================
+    //  VISTA CERTIFICADO
+    // ============================================================
+    function renderCertificateView() {
+      var c = appState.currentCert;
+      var disabled = appState.isGenerating ? 'disabled' : '';
+      var html = '<div class="animate-fade-in-up">';
+      // Botones de acción
+      html += '\
+        <div class="actions-bar">\
+          <button class="btn-action btn-back" onclick="goBack()">\
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />\
+            </svg>\
+            Volver\
+          </button>\
+          <button class="btn-action btn-pdf" onclick="downloadPDF()" ' + disabled + '>\
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />\
+            </svg>\
+            Descargar PDF\
+          </button>\
+          <button class="btn-action btn-img" onclick="downloadImage()" ' + disabled + '>\
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />\
+            </svg>\
+            Descargar Imagen\
+          </button>\
+          <button class="btn-action btn-print" onclick="window.print()">\
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />\
+            </svg>\
+            Imprimir\
+          </button>\
+          <button class="btn-action btn-new" onclick="newCertificate()">\
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">\
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />\
+            </svg>\
+            Nuevo Certificado\
+          </button>\
+        </div>';
+      // Certificado
+      html += '\
+        <div class="cert-wrapper">\
+          <div class="cert-shadow">\
+            <div class="certificate" id="certificate-area">\
+              <div class="cert-border-outer"></div>\
+              <div class="cert-border-inner"></div>\
+              <div class="cert-corner tl"></div>\
+              <div class="cert-corner tr"></div>\
+              <div class="cert-corner bl"></div>\
+              <div class="cert-corner br"></div>\
+              <div class="cert-bar-top"></div>\
+              <div class="cert-content">\
+                <div class="cert-logo-row">\
+                  <svg width="60" height="68" viewBox="0 0 60 68" fill="none">\
+                    <path d="M30 2L4 14V32C4 48.5 15.5 63.5 30 67C44.5 63.5 56 48.5 56 32V14L30 2Z" fill="#1a5276" stroke="#c0392b" stroke-width="2"/>\
+                    <path d="M30 8L10 18V32C10 45.5 19.5 57.5 30 61C40.5 57.5 50 45.5 50 32V18L30 8Z" fill="#2980b9"/>\
+                    <text x="30" y="38" text-anchor="middle" fill="white" font-size="18" font-weight="bold" font-family="Montserrat, sans-serif">M</text>\
+                    <text x="30" y="50" text-anchor="middle" fill="white" font-size="8" font-family="Montserrat, sans-serif">S</text>\
+                  </svg>\
+                  <div>\
+                    <h1 class="cert-company">MULTISERVICIOS</h1>\
+                    <p class="cert-company-sub">Capacitación y Certificación Profesional</p>\
+                  </div>\
+                </div>\
+                <div class="cert-divider">\
+                  <div class="cert-divider-line left"></div>\
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="#c0392b"><path d="M10 0L12.5 7.5H20L13.75 12.5L16.25 20L10 15L3.75 20L6.25 12.5L0 7.5H7.5L10 0Z"/></svg>\
+                  <div class="cert-divider-line right"></div>\
+                </div>\
+                <h2 class="cert-title">Certificado</h2>\
+                <h3 class="cert-subtitle">Manipulación Higiénica de Alimentos</h3>\
+                <p class="cert-preamble">Se otorga el presente certificado a:</p>\
+                <div style="margin:10px 0;padding:10px 0;">\
+                  <h2 class="cert-name">' + escapeHtml(c.nombre) + '</h2>\
+                  <div class="cert-name-line"></div>\
+                </div>\
+                <p class="cert-cedula">C.C. / Cédula N°: <span>' + escapeHtml(c.cedula) + '</span></p>\
+                <div class="cert-desc-box">\
+                  <p class="cert-desc">\
+                    Por haber completado satisfactoriamente el curso de <strong>Manipulación Higiénica de Alimentos</strong>,\
+                    cumpliendo con los requisitos establecidos en la normativa sanitaria vigente. El titular de este certificado\
+                    ha demostrado competencia en las prácticas de higiene, seguridad alimentaria, prevención de contaminación\
+                    cruzada, almacenamiento adecuado de alimentos, limpieza y desinfección de áreas de trabajo, y manejo\
+                    correcto de temperaturas.\
+                  </p>\
+                </div>\
+                <div class="cert-dates">\
+                  <div>\
+                    <p class="cert-date-label">Fecha de Expedición</p>\
+                    <p class="cert-date-value">' + escapeHtml(c.fecha) + '</p>\
+                  </div>\
+                  <div>\
+                    <p class="cert-date-label">Fecha de Vencimiento</p>\
+                    <p class="cert-date-value">' + escapeHtml(c.fechaVencimiento) + '</p>\
+                  </div>\
+                  <div>\
+                    <p class="cert-date-label">Código</p>\
+                    <p class="cert-date-value">' + escapeHtml(c.codigoCertificado) + '</p>\
+                  </div>\
+                </div>\
+                <div class="cert-signatures">\
+                  <div class="cert-sig">\
+                    <div class="cert-sig-name">Carlos Prado</div>\
+                    <div class="cert-sig-line"></div>\
+                    <p class="cert-sig-full">CARLOS ENRIQUE PRADO RUIZ</p>\
+                    <p class="cert-sig-role">Director General - MULTISERVICIOS</p>\
+                  </div>\
+                  <div class="cert-sig">\
+                    <div class="cert-sig-name">Yeimy Ulloa</div>\
+                    <div class="cert-sig-line"></div>\
+                    <p class="cert-sig-full">YEIMY ANDREA ULLOA CHAPARRO</p>\
+                    <p class="cert-sig-role">Instructora - Capacitadora BPM</p>\
+                  </div>\
+                </div>\
+                <div class="cert-seal">\
+                  <span class="cert-seal-top">Certificado</span>\
+                  <span class="cert-seal-check">✓</span>\
+                  <span class="cert-seal-bottom">Válido</span>\
+                </div>\
+              </div>\
+              <div class="cert-bar-bottom"></div>\
+            </div>\
+          </div>\
+        </div>';
+      html += '</div>';
+      return html;
+    }
+    // ============================================================
+    //  EVENTOS DEL FORMULARIO
+    // ============================================================
+    function attachFormEvents() {
+      var form = document.getElementById('cert-form');
+      var inputNombre = document.getElementById('input-nombre');
+      var inputCedula = document.getElementById('input-cedula');
+      // Solo permitir números en cédula (sin puntos, sin letras)
+      inputCedula.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 12);
+        document.getElementById('error-cedula').classList.remove('show');
+        inputCedula.classList.remove('error');
+      });
+      inputNombre.addEventListener('input', function() {
+        document.getElementById('error-nombre').classList.remove('show');
+        inputNombre.classList.remove('error');
+      });
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var nombre = inputNombre.value.trim();
+        var cedula = inputCedula.value.trim();
+        var valid = true;
+        // Validar nombre
+        if (!nombre || nombre.length < 3) {
+          var errNombre = document.getElementById('error-nombre');
+          errNombre.querySelector('span').textContent = nombre.length === 0
+            ? 'El nombre completo es obligatorio'
+            : 'El nombre debe tener al menos 3 caracteres';
+          errNombre.classList.add('show');
+          inputNombre.classList.add('error');
+          valid = false;
+        }
+        // Validar cédula
+        if (!cedula || cedula.length < 5) {
+          var errCedula = document.getElementById('error-cedula');
+          errCedula.querySelector('span').textContent = cedula.length === 0
+            ? 'El número de cédula es obligatorio'
+            : 'La cédula debe tener al menos 5 dígitos';
+          errCedula.classList.add('show');
+          inputCedula.classList.add('error');
+          valid = false;
+        }
+        if (valid) {
+          generateCertificate(nombre, cedula);
+        }
+      });
+    }
+    // ============================================================
+    //  INICIAR APLICACIÓN
+    // ============================================================
+    render();
+  </script>
+</body>
+</html>
